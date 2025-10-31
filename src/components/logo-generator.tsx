@@ -189,7 +189,7 @@ export function LogoGenerator() {
           await downloadPNG(svg, config.size, `${filename}.png`);
           break;
         case "jpg":
-          await downloadJPG(svg, config.size, 0.95, `${filename}.jpg`);
+          await downloadJPG(svg, config.size, `${filename}.jpg`, 0.95);
           break;
       }
     } catch (error) {
