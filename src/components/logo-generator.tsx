@@ -51,7 +51,8 @@ export function LogoGenerator() {
           : data.records || [];
         console.log(records);
         // Filter only bus lines
-        const busLines: BusLine[] = records
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const busLines: any[] = records
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((record) => {
             const mode = record?.transportmode?.toLowerCase();
@@ -70,7 +71,8 @@ export function LogoGenerator() {
               : "#FFFFFF",
             operator: record.operatorname,
           }))
-          .sort((a: BusLine, b: BusLine) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a: any, b: any) => {
             const numA = parseInt(a.number, 10);
             const numB = parseInt(b.number, 10);
             if (!isNaN(numA) && !isNaN(numB)) {

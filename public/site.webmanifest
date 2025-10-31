@@ -1,0 +1,17 @@
+{
+  "name": "Générateur de Logo Bus RATP",
+  "short_name": "Logo Bus RATP",
+  "description": "Créez et exportez des logos de lignes de bus RATP personnalisés",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#221F20",
+  "icons": [
+    {
+      "src": "/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
