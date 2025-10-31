@@ -195,15 +195,23 @@ export function generateLogoSVG(
  */
 export function downloadSVG(
   svgString: string,
-  filename: string = "logo-bus-ratp.svg"
+  filename: string = "logo-bus-ratp.svg",
+  openInNewTab: boolean = false
 ) {
   const blob = new Blob([svgString], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+
+  if (openInNewTab) {
+    window.open(url, "_blank");
+    // Don't revoke immediately when opening in new tab
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } else {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 /**
@@ -212,7 +220,8 @@ export function downloadSVG(
 export async function downloadPNG(
   svgString: string,
   size: number,
-  filename: string = "logo-bus-ratp.png"
+  filename: string = "logo-bus-ratp.png",
+  openInNewTab: boolean = false
 ) {
   return new Promise<void>((resolve, reject) => {
     const img = new Image();
@@ -228,19 +237,33 @@ export async function downloadPNG(
 
     img.onload = () => {
       ctx.drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = filename;
-          link.click();
-          URL.revokeObjectURL(url);
-          resolve();
-        } else {
-          reject(new Error("Failed to create blob"));
-        }
-      }, "image/png");
+
+      if (openInNewTab) {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            resolve();
+          } else {
+            reject(new Error("Failed to create blob"));
+          }
+        }, "image/png");
+      } else {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+            resolve();
+          } else {
+            reject(new Error("Failed to create blob"));
+          }
+        }, "image/png");
+      }
     };
 
     img.onerror = () => reject(new Error("Failed to load image"));
@@ -257,8 +280,9 @@ export async function downloadPNG(
 export async function downloadJPG(
   svgString: string,
   size: number,
+  filename: string = "logo-bus-ratp.jpg",
   quality: number = 0.95,
-  filename: string = "logo-bus-ratp.jpg"
+  openInNewTab: boolean = false
 ) {
   return new Promise<void>((resolve, reject) => {
     const img = new Image();
@@ -278,23 +302,40 @@ export async function downloadJPG(
       ctx.fillRect(0, 0, size, size);
       ctx.drawImage(img, 0, 0);
 
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(url);
-            resolve();
-          } else {
-            reject(new Error("Failed to create blob"));
-          }
-        },
-        "image/jpeg",
-        quality
-      );
+      if (openInNewTab) {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              window.open(url, "_blank");
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              resolve();
+            } else {
+              reject(new Error("Failed to create blob"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      } else {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = filename;
+              link.click();
+              URL.revokeObjectURL(url);
+              resolve();
+            } else {
+              reject(new Error("Failed to create blob"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      }
     };
 
     img.onerror = () => reject(new Error("Failed to load image"));
@@ -305,60 +346,188 @@ export async function downloadJPG(
   });
 }
 
+// Commented out - html2canvas can handle SVGs directly
+// /**
+//  * Convert SVG elements to images to fix html2canvas compatibility
+//  */
+// async function convertSvgToImg(element: Element): Promise<void> {
+//   const svgs = element.querySelectorAll("svg");
+//
+//   for (const svg of Array.from(svgs)) {
+//     try {
+//       // Get the SVG's computed dimensions
+//       const bbox = svg.getBoundingClientRect();
+//       const width = bbox.width;
+//       const height = bbox.height;
+//
+//       // Skip if dimensions are invalid
+//       if (width === 0 || height === 0) {
+//         console.warn("Skipping SVG with zero dimensions");
+//         continue;
+//       }
+//
+//       // Serialize the SVG
+//       const serializer = new XMLSerializer();
+//       let svgString = serializer.serializeToString(svg);
+//
+//       // Ensure SVG has proper namespace
+//       if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+//         svgString = svgString.replace(
+//           "<svg",
+//           '<svg xmlns="http://www.w3.org/2000/svg"'
+//         );
+//       }
+//
+//       // Add width and height attributes if missing
+//       if (!svgString.match(/width\s*=/)) {
+//         svgString = svgString.replace("<svg", `<svg width="${width}"`);
+//       }
+//       if (!svgString.match(/height\s*=/)) {
+//         svgString = svgString.replace("<svg", `<svg height="${height}"`);
+//       }
+//
+//       // Ensure viewBox is present (critical for RATP logos)
+//       if (!svgString.match(/viewBox\s*=/)) {
+//         const viewBox = svg.getAttribute("viewBox");
+//         if (viewBox) {
+//           svgString = svgString.replace("<svg", `<svg viewBox="${viewBox}"`);
+//         }
+//       }
+//
+//       // Use data URI instead of blob URL to avoid CORS issues
+//       const base64 = btoa(unescape(encodeURIComponent(svgString)));
+//       const dataUri = `data:image/svg+xml;base64,${base64}`;
+//
+//       // Create an image element
+//       const img = document.createElement("img");
+//       img.width = width;
+//       img.height = height;
+//       img.style.width = `${width}px`;
+//       img.style.height = `${height}px`;
+//       img.style.display = svg.style.display || "block";
+//       img.style.verticalAlign = svg.style.verticalAlign || "middle";
+//
+//       // Copy other relevant styles from computed style
+//       const computedStyle = window.getComputedStyle(svg);
+//       img.style.margin = computedStyle.margin;
+//       img.style.padding = computedStyle.padding;
+//       img.style.position = computedStyle.position;
+//       img.style.top = computedStyle.top;
+//       img.style.left = computedStyle.left;
+//
+//       // Wait for image to load
+//       await new Promise<void>((resolve, reject) => {
+//         const timeout = setTimeout(() => {
+//           reject(new Error("SVG image load timeout"));
+//         }, 5000);
+//
+//         img.onload = () => {
+//           clearTimeout(timeout);
+//           resolve();
+//         };
+//         img.onerror = (e) => {
+//           clearTimeout(timeout);
+//           console.error("Failed to load SVG as image:", e);
+//           reject(new Error("Failed to load SVG as image"));
+//         };
+//         img.src = dataUri;
+//       });
+//
+//       // Replace SVG with IMG
+//       svg.parentNode?.replaceChild(img, svg);
+//     } catch (error) {
+//       console.error("Failed to convert SVG to IMG:", error);
+//       // Don't throw, just skip this SVG and continue
+//     }
+//   }
+// }
+
 /**
  * Export using html2canvas to capture the rendered preview
  */
 export async function downloadWithHtml2Canvas(
   element: HTMLElement,
   format: "png" | "jpg" = "png",
-  filename?: string
+  filename?: string,
+  openInNewTab: boolean = false
 ) {
   const html2canvas = (await import("html2canvas-pro")).default;
 
   // Clone the element to avoid modifying the original
   const clone = element.cloneNode(true) as HTMLElement;
 
-  console.log(clone);
-
-  // Apply computed styles inline to avoid CSS variable issues
-  const applyInlineStyles = (original: Element, cloned: Element) => {
-    const computedStyle = window.getComputedStyle(original);
-    const clonedElement = cloned as HTMLElement;
-
-    // Copy all computed styles
-    for (let i = 0; i < computedStyle.length; i++) {
-      const prop = computedStyle[i];
-      const value = computedStyle.getPropertyValue(prop);
-
-      // Skip properties with lab/oklch functions
-      if (value && !value.includes("lab(") && !value.includes("oklch(")) {
-        clonedElement.style.setProperty(prop, value);
-      }
-    }
-
-    // Recursively apply to children
-    const originalChildren = original.children;
-    const clonedChildren = cloned.children;
-    for (let i = 0; i < originalChildren.length; i++) {
-      applyInlineStyles(originalChildren[i], clonedChildren[i]);
-    }
-  };
-
-  applyInlineStyles(element, clone);
-
-  // Temporarily add clone to document for rendering
+  // Temporarily add clone to document for processing
+  clone.style.position = "absolute";
   clone.style.position = "absolute";
   clone.style.left = "-9999px";
   clone.style.top = "-9999px";
   document.body.appendChild(clone);
 
   try {
+    // Don't convert SVGs - html2canvas can handle them
+    // await convertSvgToImg(clone);
+
+    // Apply inline styles to avoid CSS variable issues
+    const applyInlineStyles = (original: Element, cloned: Element) => {
+      const computedStyle = window.getComputedStyle(original);
+      const clonedElement = cloned as HTMLElement;
+
+      // Copy critical styles
+      const criticalProps = [
+        "background-color",
+        "background",
+        "color",
+        "font-family",
+        "font-size",
+        "font-weight",
+        "line-height",
+        "width",
+        "height",
+        "padding",
+        "padding-top",
+        "padding-bottom",
+        "padding-left",
+        "padding-right",
+        "margin",
+        "display",
+        "flex-direction",
+        "align-items",
+        "justify-content",
+        "text-align",
+        "overflow",
+        "position",
+        "top",
+        "left",
+        "right",
+        "bottom",
+      ];
+
+      criticalProps.forEach((prop) => {
+        const value = computedStyle.getPropertyValue(prop);
+        if (value && !value.includes("lab(") && !value.includes("oklch(")) {
+          if (clonedElement?.style)
+            clonedElement.style.setProperty(prop, value, "important");
+        }
+      });
+
+      // Recursively apply to children
+      const originalChildren = original.children;
+      const clonedChildren = cloned?.children;
+      if (!clonedChildren) return;
+      for (let i = 0; i < originalChildren.length; i++) {
+        applyInlineStyles(originalChildren[i], clonedChildren[i]);
+      }
+    };
+
+    applyInlineStyles(element, clone);
+
     const canvas = await html2canvas(clone, {
-      backgroundColor: "#f3f4f6",
+      backgroundColor: format === "jpg" ? "#FFFFFF" : null,
       scale: 5,
       useCORS: true,
       allowTaint: true,
-      logging: false,
+      logging: true,
+      foreignObjectRendering: false,
     });
 
     return new Promise<void>((resolve, reject) => {
@@ -369,11 +538,17 @@ export async function downloadWithHtml2Canvas(
         (blob) => {
           if (blob) {
             const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = defaultFilename;
-            link.click();
-            URL.revokeObjectURL(url);
+
+            if (openInNewTab) {
+              window.open(url, "_blank");
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } else {
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = defaultFilename;
+              link.click();
+              URL.revokeObjectURL(url);
+            }
             resolve();
           } else {
             reject(new Error("Failed to create blob from canvas"));
@@ -383,6 +558,9 @@ export async function downloadWithHtml2Canvas(
         format === "jpg" ? 0.95 : undefined
       );
     });
+  } catch (err) {
+    console.error("html2canvas export failed:", err);
+    throw err;
   } finally {
     // Clean up: remove clone from document
     document.body.removeChild(clone);
